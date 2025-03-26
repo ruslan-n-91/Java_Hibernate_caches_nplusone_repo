@@ -4,16 +4,19 @@ import org.hibernate.Cache;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
-import org.hibernate.metadata.ClassMetadata;
-import org.somegroup.model.Book;
+import org.somegroup.model.*;
 
-import java.util.Map;
+import java.util.List;
 import java.util.Scanner;
 
 public class App {
     public static void main(String[] args) {
         Configuration configuration = new Configuration();
         configuration.addAnnotatedClass(Book.class);
+        configuration.addAnnotatedClass(Publisher.class);
+        configuration.addAnnotatedClass(Magazine.class);
+        configuration.addAnnotatedClass(PublisherFetchMode.class);
+        configuration.addAnnotatedClass(MagazineFetchMode.class);
 
         SessionFactory sessionFactory = configuration.buildSessionFactory();
 
@@ -41,13 +44,13 @@ public class App {
                         secondLevelCacheDemo(sessionFactory);
                         break;
                     case "3":
+                        nPlusOneSolutionsDemo(sessionFactory);
                         break;
                     default:
                         break;
                 }
             }
         }
-
     }
 
     private static void firstLevelCacheDemo(SessionFactory sessionFactory) {
@@ -64,14 +67,11 @@ public class App {
 
         Book book1 = sessionFirstLevelCacheDemo.get(Book.class, 1);
         System.out.println(book1);
-
         Book book2 = sessionFirstLevelCacheDemo.get(Book.class, 2);
         System.out.println(book2);
-
         Book book3 = sessionFirstLevelCacheDemo.get(Book.class, 3);
         System.out.println(book3);
 
-        // clearing the 2nd level cache so it does not interfere with the 1st level cache demonstration
         clearSecondLevelCache(sessionFactory);
 
         System.out.println("-3 books are in 1st level cache");
@@ -79,10 +79,8 @@ public class App {
 
         book1 = sessionFirstLevelCacheDemo.get(Book.class, 1);
         System.out.println(book1);
-
         book2 = sessionFirstLevelCacheDemo.get(Book.class, 2);
         System.out.println(book2);
-
         book3 = sessionFirstLevelCacheDemo.get(Book.class, 3);
         System.out.println(book3);
 
@@ -92,7 +90,6 @@ public class App {
 
         System.out.println("------------------------------------------------");
 
-        // clearing the 2nd level cache so it does not interfere with the 1st level cache demonstration
         clearSecondLevelCache(sessionFactory);
 
         sessionFirstLevelCacheDemo = sessionFactory.openSession();
@@ -102,14 +99,11 @@ public class App {
 
         book1 = sessionFirstLevelCacheDemo.get(Book.class, 1);
         System.out.println(book1);
-
         book2 = sessionFirstLevelCacheDemo.get(Book.class, 2);
         System.out.println(book2);
-
         book3 = sessionFirstLevelCacheDemo.get(Book.class, 3);
         System.out.println(book3);
 
-        // clearing the 2nd level cache so it does not interfere with the 1st level cache demonstration
         clearSecondLevelCache(sessionFactory);
 
         System.out.println("-3 books are in 1st level cache");
@@ -117,19 +111,16 @@ public class App {
 
         book1 = sessionFirstLevelCacheDemo.get(Book.class, 1);
         System.out.println(book1);
-
         book2 = sessionFirstLevelCacheDemo.get(Book.class, 2);
         System.out.println(book2);
-
         book3 = sessionFirstLevelCacheDemo.get(Book.class, 3);
         System.out.println(book3);
 
-        sessionFirstLevelCacheDemo.getTransaction().commit();
         sessionFirstLevelCacheDemo.close();
         System.out.println("-Session closed");
         System.out.println("------------------------------------------------");
 
-        // clearing the 2nd level cache so it does not interfere with the 1st level cache demonstration
+        // clearing the 2nd level cache in the end too
         clearSecondLevelCache(sessionFactory);
     }
 
@@ -192,5 +183,50 @@ public class App {
         if (cache != null) {
             cache.evictAllRegions();
         }
+    }
+
+    private static void nPlusOneSolutionsDemo(SessionFactory sessionFactory) {
+        clearSecondLevelCache(sessionFactory);
+        Session session = sessionFactory.openSession();
+        session.beginTransaction();
+
+        System.out.println("------------------------------------------------");
+        System.out.println("-N Plus One problem:");
+        List<Publisher> publishers = session.createQuery("SELECT p FROM Publisher p", Publisher.class)
+                .getResultList();
+        for (Publisher publisher : publishers) {
+            System.out.println("-Publisher " + publisher.getName()
+                    + " has magazines: " + publisher.getMagazines());
+        }
+        session.close();
+
+        clearSecondLevelCache(sessionFactory);
+        session = sessionFactory.openSession();
+        session.beginTransaction();
+
+        System.out.println("------------------------------------------------");
+        System.out.println("-Solution one: Join fetch");
+        List<Publisher> publishersJoinFetch = session.createQuery("SELECT p FROM Publisher p" +
+                " LEFT JOIN FETCH p.magazines", Publisher.class).getResultList();
+        for (Publisher publisher : publishersJoinFetch) {
+            System.out.println("-Publisher " + publisher.getName()
+                    + " has magazines: " + publisher.getMagazines());
+        }
+
+        clearSecondLevelCache(sessionFactory);
+        session = sessionFactory.openSession();
+        session.beginTransaction();
+
+        System.out.println("------------------------------------------------");
+        System.out.println("-Solution two: Fetch mode SUBSELECT");
+        List<PublisherFetchMode> publishersFetchMode = session.createQuery("SELECT p FROM PublisherFetchMode p"
+                , PublisherFetchMode.class).getResultList();
+        for (PublisherFetchMode publisher : publishersFetchMode) {
+            System.out.println("-Publisher " + publisher.getName()
+                    + " has magazines: " + publisher.getMagazines());
+        }
+        session.close();
+
+        System.out.println("------------------------------------------------");
     }
 }
