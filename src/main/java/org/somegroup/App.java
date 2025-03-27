@@ -1,5 +1,6 @@
 package org.somegroup;
 
+import jakarta.persistence.EntityGraph;
 import org.hibernate.Cache;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -15,8 +16,11 @@ public class App {
         configuration.addAnnotatedClass(Book.class);
         configuration.addAnnotatedClass(Publisher.class);
         configuration.addAnnotatedClass(Magazine.class);
+
         configuration.addAnnotatedClass(PublisherFetchMode.class);
         configuration.addAnnotatedClass(MagazineFetchMode.class);
+        configuration.addAnnotatedClass(PublisherBatchSize.class);
+        configuration.addAnnotatedClass(MagazineBatchSize.class);
 
         SessionFactory sessionFactory = configuration.buildSessionFactory();
 
@@ -57,19 +61,18 @@ public class App {
         System.out.println("First level cache demonstration");
         System.out.println("------------------------------------------------");
 
-        // clearing the 2nd level cache so it does not interfere with the 1st level cache demonstration
         clearSecondLevelCache(sessionFactory);
 
         Session sessionFirstLevelCacheDemo = sessionFactory.openSession();
         sessionFirstLevelCacheDemo.beginTransaction();
         System.out.println("-New session created");
-        System.out.println("-1st level cache is clear");
+        System.out.println("-1st level cache is empty");
 
         Book book1 = sessionFirstLevelCacheDemo.get(Book.class, 1);
-        System.out.println(book1);
         Book book2 = sessionFirstLevelCacheDemo.get(Book.class, 2);
-        System.out.println(book2);
         Book book3 = sessionFirstLevelCacheDemo.get(Book.class, 3);
+        System.out.println(book1);
+        System.out.println(book2);
         System.out.println(book3);
 
         clearSecondLevelCache(sessionFactory);
@@ -78,13 +81,12 @@ public class App {
         System.out.println("-Getting books from 1st level cache");
 
         book1 = sessionFirstLevelCacheDemo.get(Book.class, 1);
-        System.out.println(book1);
         book2 = sessionFirstLevelCacheDemo.get(Book.class, 2);
-        System.out.println(book2);
         book3 = sessionFirstLevelCacheDemo.get(Book.class, 3);
+        System.out.println(book1);
+        System.out.println(book2);
         System.out.println(book3);
 
-        sessionFirstLevelCacheDemo.getTransaction().commit();
         sessionFirstLevelCacheDemo.close();
         System.out.println("-Session closed");
 
@@ -95,13 +97,13 @@ public class App {
         sessionFirstLevelCacheDemo = sessionFactory.openSession();
         sessionFirstLevelCacheDemo.beginTransaction();
         System.out.println("-New session created");
-        System.out.println("-1st level cache is clear");
+        System.out.println("-1st level cache is empty");
 
         book1 = sessionFirstLevelCacheDemo.get(Book.class, 1);
-        System.out.println(book1);
         book2 = sessionFirstLevelCacheDemo.get(Book.class, 2);
-        System.out.println(book2);
         book3 = sessionFirstLevelCacheDemo.get(Book.class, 3);
+        System.out.println(book1);
+        System.out.println(book2);
         System.out.println(book3);
 
         clearSecondLevelCache(sessionFactory);
@@ -110,17 +112,16 @@ public class App {
         System.out.println("-Getting books from 1st level cache");
 
         book1 = sessionFirstLevelCacheDemo.get(Book.class, 1);
-        System.out.println(book1);
         book2 = sessionFirstLevelCacheDemo.get(Book.class, 2);
-        System.out.println(book2);
         book3 = sessionFirstLevelCacheDemo.get(Book.class, 3);
+        System.out.println(book1);
+        System.out.println(book2);
         System.out.println(book3);
 
         sessionFirstLevelCacheDemo.close();
         System.out.println("-Session closed");
         System.out.println("------------------------------------------------");
 
-        // clearing the 2nd level cache in the end too
         clearSecondLevelCache(sessionFactory);
     }
 
@@ -134,37 +135,37 @@ public class App {
         Session session2 = sessionFactory.openSession();
         Session session3 = sessionFactory.openSession();
 
-        System.out.println("-Three sessions created");
-        System.out.println("-2nd level cache is clear");
+        System.out.println("-Three sessions are created");
+        System.out.println("-2nd level cache is empty");
 
         session1.beginTransaction();
         session2.beginTransaction();
         session3.beginTransaction();
 
         Book book4 = session1.get(Book.class, 4);
-        System.out.println(book4);
         Book book5 = session1.get(Book.class, 5);
-        System.out.println(book5);
         Book book6 = session1.get(Book.class, 6);
+        System.out.println(book4);
+        System.out.println(book5);
         System.out.println(book6);
 
         System.out.println("-3 books are in 2nd level cache");
         System.out.println("-Getting books from 2nd level cache");
 
-        book4 = session2.get(Book.class, 4);
+        book4 = session1.get(Book.class, 4);
+        book5 = session1.get(Book.class, 5);
+        book6 = session1.get(Book.class, 6);
         System.out.println(book4);
-        book5 = session2.get(Book.class, 5);
         System.out.println(book5);
-        book6 = session2.get(Book.class, 6);
         System.out.println(book6);
 
         System.out.println("-Getting books from 2nd level cache");
 
-        book4 = session3.get(Book.class, 4);
+        book4 = session1.get(Book.class, 4);
+        book5 = session1.get(Book.class, 5);
+        book6 = session1.get(Book.class, 6);
         System.out.println(book4);
-        book5 = session3.get(Book.class, 5);
         System.out.println(book5);
-        book6 = session3.get(Book.class, 6);
         System.out.println(book6);
 
         session1.close();
@@ -186,14 +187,17 @@ public class App {
     }
 
     private static void nPlusOneSolutionsDemo(SessionFactory sessionFactory) {
+        System.out.println("N plus one problem solutions");
+        System.out.println("------------------------------------------------");
+
         clearSecondLevelCache(sessionFactory);
         Session session = sessionFactory.openSession();
         session.beginTransaction();
 
-        System.out.println("------------------------------------------------");
         System.out.println("-N Plus One problem:");
-        List<Publisher> publishers = session.createQuery("SELECT p FROM Publisher p", Publisher.class)
-                .getResultList();
+        System.out.println("-One plus N queries");
+        List<Publisher> publishers = session.createQuery("SELECT p FROM Publisher p",
+                Publisher.class).getResultList();
         for (Publisher publisher : publishers) {
             System.out.println("-Publisher " + publisher.getName()
                     + " has magazines: " + publisher.getMagazines());
@@ -206,12 +210,14 @@ public class App {
 
         System.out.println("------------------------------------------------");
         System.out.println("-Solution one: Join fetch");
+        System.out.println("-Only one query");
         List<Publisher> publishersJoinFetch = session.createQuery("SELECT p FROM Publisher p" +
                 " LEFT JOIN FETCH p.magazines", Publisher.class).getResultList();
         for (Publisher publisher : publishersJoinFetch) {
             System.out.println("-Publisher " + publisher.getName()
                     + " has magazines: " + publisher.getMagazines());
         }
+        session.close();
 
         clearSecondLevelCache(sessionFactory);
         session = sessionFactory.openSession();
@@ -219,14 +225,49 @@ public class App {
 
         System.out.println("------------------------------------------------");
         System.out.println("-Solution two: Fetch mode SUBSELECT");
-        List<PublisherFetchMode> publishersFetchMode = session.createQuery("SELECT p FROM PublisherFetchMode p"
-                , PublisherFetchMode.class).getResultList();
+        System.out.println("-One plus one queries");
+        List<PublisherFetchMode> publishersFetchMode = session.createQuery("SELECT p FROM PublisherFetchMode p",
+                PublisherFetchMode.class).getResultList();
         for (PublisherFetchMode publisher : publishersFetchMode) {
             System.out.println("-Publisher " + publisher.getName()
                     + " has magazines: " + publisher.getMagazines());
         }
         session.close();
 
+        clearSecondLevelCache(sessionFactory);
+        session = sessionFactory.openSession();
+        session.beginTransaction();
+
         System.out.println("------------------------------------------------");
+        System.out.println("-Solution three: Batch size");
+        System.out.println("-One plus (N divided by batch size) queries");
+        List<PublisherBatchSize> publishersBatchSize = session.createQuery("SELECT p FROM PublisherBatchSize p",
+                PublisherBatchSize.class).getResultList();
+        for (PublisherBatchSize publisher : publishersBatchSize) {
+            System.out.println("-Publisher " + publisher.getName()
+                    + " has magazines: " + publisher.getMagazines());
+        }
+        session.close();
+
+        clearSecondLevelCache(sessionFactory);
+        session = sessionFactory.openSession();
+        session.beginTransaction();
+
+        System.out.println("------------------------------------------------");
+        System.out.println("-Solution four: Entity graph");
+        System.out.println("-Only one query");
+        EntityGraph<Publisher> entityGraph = session.createEntityGraph(Publisher.class);
+        entityGraph.addAttributeNodes("magazines");
+
+        List<Publisher> publishersEnityGraph = session.createQuery("SELECT p FROM Publisher p",
+                Publisher.class).setHint("jakarta.persistence.fetchgraph", entityGraph).getResultList();
+        for (Publisher publisher : publishersEnityGraph) {
+            System.out.println("-Publisher " + publisher.getName()
+                    + " has magazines: " + publisher.getMagazines());
+        }
+        session.close();
+
+        System.out.println("------------------------------------------------");
+        clearSecondLevelCache(sessionFactory);
     }
 }

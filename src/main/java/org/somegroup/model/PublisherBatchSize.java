@@ -1,12 +1,13 @@
 package org.somegroup.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.util.List;
 
 @Entity
-@Table(name = "Publisher")
-public class Publisher {
+@Table(name = "Publisher_batchsize")
+public class PublisherBatchSize {
 
     @Id
     @Column(name = "id")
@@ -17,12 +18,13 @@ public class Publisher {
     private String name;
 
     @OneToMany(mappedBy = "publisher")
-    private List<Magazine> magazines;
+    @BatchSize(size = 3)
+    private List<MagazineBatchSize> magazines;
 
-    public Publisher() {
+    public PublisherBatchSize() {
     }
 
-    public Publisher(String name) {
+    public PublisherBatchSize(String name) {
         this.name = name;
     }
 
@@ -42,11 +44,11 @@ public class Publisher {
         this.name = name;
     }
 
-    public List<Magazine> getMagazines() {
+    public List<MagazineBatchSize> getMagazines() {
         return magazines;
     }
 
-    public void setMagazines(List<Magazine> magazines) {
+    public void setMagazines(List<MagazineBatchSize> magazines) {
         this.magazines = magazines;
     }
 
